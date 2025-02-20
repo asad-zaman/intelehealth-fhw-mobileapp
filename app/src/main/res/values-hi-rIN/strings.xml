@@ -646,6 +646,7 @@
     <string name="my_appointments">मेरे अपॉइंटमेंट्स</string>
     <string name="all_appointments">सभी अपॉइंटमेंट्स</string>
     <string name="search_patient">रोगी सर्च करें</string>
+    <string name="filter_patient">मौजूदा रोगी सर्च करें</string>
     <string name="cancelled">रद्द</string>
     <string name="completed">पूरा हुआ</string>
     <string name="cancelled_appointments">रद्द अपॉइंटमेंट्स</string>

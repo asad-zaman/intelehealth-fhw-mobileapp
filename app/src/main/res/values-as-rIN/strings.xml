@@ -548,6 +548,7 @@
     <string name="todays">আজিৰ</string>
     <string name="all_appointments">আটাইবোৰ</string>
     <string name="search_patient">ৰোগীক বিচাৰি উলিয়াওক</string>
+    <string name="filter_patient">বৰ্তমানৰ ৰোগীক সন্ধান কৰক</string>
     <string name="upcoming">আগন্তুক</string>
     <string name="cancelled">বাতিল কৰা</string>
     <string name="completed">সম্পূৰ্ণ হ’ল</string>

@@ -451,6 +451,7 @@
     <string name="setup">Setup</string>
     <string name="terms_and_conditions">Terms &amp; Conditions</string>
     <string name="privacy_policy">Privacy Policy</string>
+    <string name="filter_patient">Search Existing Patient</string>
     <string name="decline">Decline</string>
     <string name="accept_new">Accept</string>
     <string name="next_new">Next</string>
@@ -599,6 +600,17 @@
     <string name="notifi_incompl_activity">Incomplete activity</string>
     <string name="notifi_archived_notifi">Archived notifications</string>
     <string name="five_presc_received">%1$s prescriptions received</string>
+    <string name="filter_hint_first_name">First Name <font color='red'>*</font></string>
+    <string name="filter_hint_type_first_name">Type First Name</string>
+    <string name="filter_hint_last_name">Last Name</string>
+    <string name="filter_hint_type_last_name">Type Last Name</string>
+    <string name="filter_hint_gender">Gender <font color='red'>*</font></string>
+    <string name="filter_hint_phone">Phone</string>
+    <string name="filter_hint_type_phone">Type Phone Number</string>
+    <string name="filter_hint_dob">DoB</string>
+    <string name="filter_hint_dob_dd">DD</string>
+    <string name="filter_hint_dob_mm">MM</string>
+    <string name="filter_hint_dob_yy">YYYY</string>
 
     <string name="add_new_patient">Add new patient</string>
 
@@ -1075,4 +1087,6 @@
     <string name="sync">Refresh</string>
     <string name="sending_otp">Sending OTP...</string>
     <string name="title_video">Video Feature</string>
+    <string name="go_with_existing_patient">Proceed with selected Patient</string>
+    <string name="go_create_new_patient"><![CDATA[Reject & create new Patient]]></string>
 </resources>
