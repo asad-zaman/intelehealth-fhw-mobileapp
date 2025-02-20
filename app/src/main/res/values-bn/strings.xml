@@ -551,6 +551,7 @@
     <string name="todays">Today\'s</string>
     <string name="all_appointments">All</string>
     <string name="search_patient">Search patient</string>
+    <string name="filter_patient">Search Existing Patient</string>
     <string name="upcoming">Upcoming</string>
     <string name="cancelled">Cancelled</string>
     <string name="completed">Completed</string>

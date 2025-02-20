@@ -162,7 +162,7 @@ import okhttp3.ResponseBody;
 
 public class PatientDetailActivity2 extends BaseActivity implements NetworkUtils.InternetCheckUpdateInterface {
     private static final String TAG = PatientDetailActivity2.class.getSimpleName();
-    TextView name_txtview, openmrsID_txt, patientname, gender, patientdob, patientage, phone,
+    TextView name_txtview, openmrsID_txt, mpiID_txt, patientname, gender, patientdob, patientage, phone,
             postalcode, patientcountry, patientstate, patientdistrict, village, address1, addr2View,
             son_daughter_wife, patientoccupation, patientcaste, patienteducation, patienteconomicstatus, patientNationalID,
             guardina_name_tv, guardian_type_tv, contact_type_tv, em_contact_name_tv, em_contact_number_tv;
@@ -539,6 +539,7 @@ public class PatientDetailActivity2 extends BaseActivity implements NetworkUtils
         profile_image = findViewById(R.id.profile_image);
         name_txtview = findViewById(R.id.name_txtview);
         openmrsID_txt = findViewById(R.id.openmrsID_txt);
+        mpiID_txt = findViewById(R.id.mpiID_txt);
 
         patientname = findViewById(R.id.name);
         gender = findViewById(R.id.gender);
@@ -1075,7 +1076,7 @@ public class PatientDetailActivity2 extends BaseActivity implements NetworkUtils
         patientDTO = new PatientDTO();
         String patientSelection = "uuid = ?";
         String[] patientArgs = {dataString};
-        String[] patientColumns = {"uuid", "openmrs_id", "first_name", "middle_name", "last_name", "gender",
+        String[] patientColumns = {"uuid", "openmrs_id", "mpi_id", "first_name", "middle_name", "last_name", "gender",
                 "date_of_birth", "address1", "address2", "city_village", "state_province",
                 "postal_code", "country", "phone_number", "gender", "sdw",
                 "patient_photo", "guardian_type", "guardian_name", "contact_type", "em_contact_name", "em_contact_num"};
@@ -1084,6 +1085,7 @@ public class PatientDetailActivity2 extends BaseActivity implements NetworkUtils
             do {
                 patientDTO.setUuid(idCursor.getString(idCursor.getColumnIndexOrThrow("uuid")));
                 patientDTO.setOpenmrsId(idCursor.getString(idCursor.getColumnIndexOrThrow("openmrs_id")));
+                patientDTO.setMpiId(idCursor.getString(idCursor.getColumnIndexOrThrow("mpi_id")));
                 patientDTO.setFirstname(idCursor.getString(idCursor.getColumnIndexOrThrow("first_name")));
                 patientDTO.setMiddlename(idCursor.getString(idCursor.getColumnIndexOrThrow("middle_name")));
                 patientDTO.setLastname(idCursor.getString(idCursor.getColumnIndexOrThrow("last_name")));
@@ -1244,6 +1246,14 @@ public class PatientDetailActivity2 extends BaseActivity implements NetworkUtils
             openmrsID_txt.setText(patientDTO.getOpenmrsId());
         } else {
             openmrsID_txt.setText(getString(R.string.patient_not_registered));
+        }
+
+        // setting mpi id
+        if (patientDTO.getMpiId() != null && !patientDTO.getMpiId().isEmpty()) {
+            mpiID_txt.setVisibility(View.VISIBLE);
+            mpiID_txt.setText(patientDTO.getMpiId());
+        } else {
+            mpiID_txt.setVisibility(View.GONE);
         }
 
         // setTitle(patientDTO.getOpenmrs_id());

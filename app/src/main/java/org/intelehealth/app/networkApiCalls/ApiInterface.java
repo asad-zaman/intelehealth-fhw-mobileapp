@@ -81,6 +81,11 @@ public interface ApiInterface {
     Call<ResponseDTO> RESPONSE_DTO_CALL(@Url String url,
                                         @Header("Authorization") String authHeader);
 
+    //EMR-Middleware/webapi/pull/pulldata/search
+    @GET
+    Observable<ResponseDTO> RESPONSE_DTO_CALL_FOR_FILTER(@Url String url,
+                                        @Header("Authorization") String authHeader);
+
     @GET
     Observable<LoginModel> LOGIN_MODEL_OBSERVABLE(@Url String url,
                                                   @Header("Authorization") String authHeader);

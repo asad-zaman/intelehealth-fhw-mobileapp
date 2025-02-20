@@ -2464,4 +2464,10 @@
         <item>स्वयं</item>
         <item>परिवार</item>
     </string-array>
+
+    <string-array name="patient_gender">
+        <item>Select Gender</item>
+        <item>Male</item>
+        <item>Female</item>
+    </string-array>
 </resources>

@@ -112,6 +112,7 @@ public class InteleHealthDatabaseHelper extends SQLiteOpenHelper {
     public static final String CREATE_PATIENT_MAIN = "CREATE TABLE IF NOT EXISTS tbl_patient(" +
             "uuid TEXT PRIMARY KEY," +
             "openmrs_id TEXT," +
+            "mpi_id TEXT," +
             "first_name TEXT," +
             "middle_name TEXT," +
             "last_name TEXT," +
