@@ -90,7 +90,12 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
         doFilter(
           firstName = firstNameTv.text.toString(),
           lastName = lastNameTv.text.toString(),
-          gender = if(genderSpinner.selectedItemPosition == 1) "M" else "F",
+          gender = when (genderSpinner.selectedItemPosition) {
+            1 -> "M"
+            2 -> "F"
+            3 -> "O"
+            else -> ""
+          },
           phone = phoneTv.text.toString(),
           dob = if(dayTv.text.isNotEmpty()) "${yearTv.text}-${String.format("%2s", monthTv.text)}-${String.format("%2s", dayTv.text)}" else ""
         )
