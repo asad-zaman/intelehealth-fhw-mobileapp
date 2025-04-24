@@ -68,6 +68,7 @@ public class PatientsDAO {
         try {
             values.put("uuid", patient.getUuid());
             values.put("openmrs_id", patient.getOpenmrsId());
+            values.put("mpi_id", patient.getMpiId());
             values.put("first_name", patient.getFirstname());
             values.put("middle_name", patient.getMiddlename());
             values.put("last_name", patient.getLastname());
