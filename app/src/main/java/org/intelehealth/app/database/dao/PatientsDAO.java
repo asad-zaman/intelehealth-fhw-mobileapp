@@ -1,5 +1,7 @@
 package org.intelehealth.app.database.dao;
 
+import static org.intelehealth.app.database.dao.EncounterDAO.getStartVisitNoteEncounterByVisitUUID;
+
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
@@ -772,26 +774,26 @@ public class PatientsDAO {
         return modelList;
     }
 
-    public static List<PatientDTO> getFilteredPatients(String firstName, String lastName, String gender, String phone, String dob) {
+    public static List<PatientDTO> getFilteredPatients(String firstName, String lastName, String gender, String phone, String dob, int offset, int limit) {
         StringBuilder search = new StringBuilder();
         search.append("first_name LIKE '%").append(firstName).append("%' AND gender = '").append(gender).append("'");
 
         if(!lastName.isEmpty()) {
-            search.append(" OR last_name LIKE '%").append(lastName).append("%'");
+            search.append(" AND last_name LIKE '%").append(lastName).append("%'");
         }
 
         if(!dob.isEmpty()) {
-            search.append(" OR date_of_birth = '").append(dob).append("'");
+            search.append(" AND date_of_birth = '").append(dob).append("'");
         }
         // search = StringUtils.mobileNumberEmpty(phoneNumber());
         List<PatientDTO> modelList = new ArrayList<PatientDTO>();
-        SQLiteDatabase db = IntelehealthApplication.inteleHealthDatabaseHelper.getWritableDatabase();
+        SQLiteDatabase db = IntelehealthApplication.inteleHealthDatabaseHelper.getReadableDatabase();
         String table = "tbl_patient";
         List<String> patientUUID_List = new ArrayList<>();
 
         if(!phone.isEmpty()) {
-            final Cursor search_mobile_cursor = db.rawQuery("SELECT DISTINCT patientuuid FROM tbl_patient_attribute WHERE value = ?",
-                    new String[]{phone});
+            final Cursor search_mobile_cursor = db.rawQuery("SELECT DISTINCT patientuuid FROM tbl_patient_attribute WHERE value = ? limit ? offset ?",
+                    new String[]{phone, String.valueOf(limit), String.valueOf(offset)});
             /* DISTINCT will get remove the duplicate values. The duplicate value will come when you have created
              * a patient with mobile no. 12345 and patient is pushed than later you edit the mobile no to
              * 12344 or something. In this case, the local db maintains two separate rows both with value: 12344 */
@@ -814,7 +816,7 @@ public class PatientsDAO {
         String searchQuery = search.toString();
         if (patientUUID_List.size() != 0) {
             for (int i = 0; i < patientUUID_List.size(); i++) {
-                final Cursor searchCursor = db.rawQuery("SELECT * FROM " + table + " WHERE " + searchQuery + " OR uuid = '" + patientUUID_List.get(i) + "'"
+                final Cursor searchCursor = db.rawQuery("SELECT * FROM " + table + " WHERE " + searchQuery + " AND uuid = '" + patientUUID_List.get(i) + "'"
                         + " ORDER BY first_name ASC", null);
                 //  if(searchCursor.getCount() != -1) { //all values are present as per the search text entered...
                 try {
@@ -848,7 +850,7 @@ public class PatientsDAO {
             }
         } else { // no mobile number was added in search text.
             final Cursor searchCursor = db.rawQuery("SELECT * FROM " + table + " WHERE " + searchQuery
-                    + "ORDER BY first_name ASC", null);
+                    + "ORDER BY first_name ASC limit ? offset ?", new String[]{ String.valueOf(limit), String.valueOf(offset) });
 
             //  if(searchCursor.getCount() != -1) { //all values are present as per the search text entered...
             try {
@@ -879,7 +881,65 @@ public class PatientsDAO {
                 CustomLog.e(TAG,e.getMessage());
             }
         }
-        return modelList;
+
+        return fetchDataforTags(modelList);
+    }
+
+    private static List<PatientDTO> fetchDataforTags(List<PatientDTO> patientDTOList) {
+        /**
+         * 1. Check first if visit is present for this patient or not if yes than do other code logic.
+         */
+        for (int i = 0; i < patientDTOList.size(); i++) {
+            VisitDTO visitDTO = isVisitPresentForPatient_fetchVisitValues(patientDTOList.get(i).getUuid());
+
+            /**
+             * 2. now check if only visit is present than only proceed to get value for priority tag, presc tag, startdate tag.
+             */
+            if (visitDTO.getUuid() != null && visitDTO.getStartdate() != null) {
+                //  1. Priority Tag.
+                EncounterDAO encounterDAO = new EncounterDAO();
+                String emergencyUuid = "";
+                try {
+                    emergencyUuid = encounterDAO.getEmergencyEncounters(visitDTO.getUuid(), encounterDAO.getEncounterTypeUuid("EMERGENCY"));
+                } catch (DAOException e) {
+                    FirebaseCrashlytics.getInstance().recordException(e);
+                    emergencyUuid = "";
+                }
+                if (!emergencyUuid.isEmpty() || !emergencyUuid.equalsIgnoreCase("")) { // ie. visit is emergency visit.
+                    patientDTOList.get(i).setEmergency(true);
+                } else { //ie. visit not emergency.
+                    patientDTOList.get(i).setEmergency(false);
+                }
+
+                //  2. startdate added.
+                String visit_start_date = DateAndTimeUtils.date_formatter(visitDTO.getStartdate(),
+                        "yyyy-MM-dd'T'HH:mm:ss.SSSZ",
+                        "dd MMM 'at' HH:mm a");    // Eg. 26 Sep 2022 at 03:15 PM
+                CustomLog.v("SearchPatient", "date: " + visit_start_date);
+
+                patientDTOList.get(i).setVisit_startdate(visit_start_date);
+
+                //  3. prescription received/pending tag logic.
+                String encounteruuid = getStartVisitNoteEncounterByVisitUUID(visitDTO.getUuid());
+                if (!encounteruuid.isEmpty() && !encounteruuid.equalsIgnoreCase("")) {
+                    patientDTOList.get(i).setPrescription_exists(true);
+                } else {
+                    patientDTOList.get(i).setPrescription_exists(false);
+                }
+
+                // checking if visit is uploaded or not - start
+                patientDTOList.get(i).setVisitDTO(visitDTO);
+                // checking if visit is uploaded or not - end
+
+            } else {
+                /**
+                 * no visit for this patient.
+                 * dont add startvisitdate value into this model keep it null and later check for null check and add logic
+                 */
+            }
+        }
+
+        return patientDTOList;
     }
 
     public static String phoneNumber(String patientuuid) throws DAOException {

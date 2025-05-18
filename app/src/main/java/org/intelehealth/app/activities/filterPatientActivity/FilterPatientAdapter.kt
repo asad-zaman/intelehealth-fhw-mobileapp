@@ -11,7 +11,7 @@ import org.intelehealth.app.models.dto.PatientDTO
 import org.intelehealth.app.utilities.SessionManager
 import org.intelehealth.app.utilities.StringUtils
 
-class FilterPatientAdapter(private var patientList: List<PatientDTO>, private val listener: AdapterClickListener): RecyclerView.Adapter<FilterPatientAdapter.FilterPatientViewHolder>() {
+class FilterPatientAdapter(private var patientList: MutableList<PatientDTO>, private val listener: AdapterClickListener): RecyclerView.Adapter<FilterPatientAdapter.FilterPatientViewHolder>() {
   private var lastSelectedPosition = -1
 
   interface AdapterClickListener {
@@ -61,9 +61,17 @@ class FilterPatientAdapter(private var patientList: List<PatientDTO>, private va
     holder.onBindView(patientList[position])
   }
 
-  fun updatePatientList(newPatients: List<PatientDTO>) {
+  fun updatePatientList(newPatients: MutableList<PatientDTO>) {
     lastSelectedPosition = -1
     patientList = newPatients
     notifyDataSetChanged()
+  }
+
+  fun addMorePatients(newPatients: List<PatientDTO>) {
+    val currentPatientSize = patientList.size
+    val newPatientsSize = newPatients.size
+
+    patientList.addAll(newPatients)
+    notifyItemRangeInserted(currentPatientSize, newPatientsSize)
   }
 }

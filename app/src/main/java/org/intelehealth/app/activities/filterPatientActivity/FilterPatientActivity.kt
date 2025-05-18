@@ -10,6 +10,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -28,9 +29,16 @@ import org.intelehealth.app.models.dto.ResponseDTO
 import org.intelehealth.app.shared.BaseActivity
 import org.intelehealth.app.utilities.DialogUtils
 import org.intelehealth.app.utilities.ToastUtil
+import retrofit2.Call
 
 class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickListener {
+  private var isFullyLoaded: Boolean = false
+  private var isDataLoading: Boolean = false
+  private val defaultPageSize: Int = 50
+  private var offset = 0
+
   private lateinit var filterSuccessLayout: LinearLayout
+  private lateinit var filterSuccessActionLayout: LinearLayout
   private lateinit var filterFailedLayout: LinearLayout
   private lateinit var filterRecyclerView: RecyclerView
   private lateinit var goWithSelectedButton: Button
@@ -66,6 +74,7 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
     }
 
     filterSuccessLayout = findViewById(R.id.filter_patient_success_ll)
+    filterSuccessActionLayout = findViewById(R.id.success_action_layout)
     filterFailedLayout = findViewById(R.id.filter_patient_failed_ll)
     goWithSelectedButton = findViewById(R.id.btn_with_selected_patient)
 
@@ -162,8 +171,6 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
       monthTv.error = "type valid year"
     }
 
-
-
     return isValid
   }
 
@@ -174,21 +181,14 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
       }
     }
 
-    subscriptions.add(
-      Observable.fromCallable { PatientsDAO.getFilteredPatients(firstName, lastName, gender, phone, dob) }
-        .concatMap {
-          if (it.isEmpty()) {
-            findRemotePatientObservable(firstName, lastName, gender, phone, dob)
-              .concatMap { response ->
-                response.data?.patientDTO?.let { remotePatients ->
-                  patientsDAO.insertPatients(remotePatients)
-                }
+    offset = 0
+    isFullyLoaded = false
+    initRecyclerScrollListener(firstName, lastName, gender, phone, dob)
 
-                Observable.just(PatientsDAO.getFilteredPatients(firstName, lastName, gender, phone, dob))
-              }
-          } else {
-            Observable.just(it)
-          }
+    subscriptions.add(
+      Observable.fromCallable { syncRemoteSearchedPatients(firstName, lastName, gender, phone, dob) }
+        .concatMap {
+          Observable.just(PatientsDAO.getFilteredPatients(firstName, lastName, gender, phone, dob, offset, defaultPageSize))
         }
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread())
@@ -201,11 +201,34 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
     )
   }
 
-  private fun findRemotePatientObservable(firstName: String, lastName: String, gender: String, phone: String, dob: String): Observable<ResponseDTO> {
+  private fun syncRemoteSearchedPatients(firstName: String, lastName: String, gender: String, phone: String, dob: String) {
+    var pageNo = 1
+    var totalCount = 0
+
+    do {
+      try {
+        findRemotePatientObservable(firstName, lastName, gender, phone, dob, pageNo).execute().body()?.let { responseDto ->
+          responseDto.data?.let { data ->
+            data.patientDTO?.let { remotePatients ->
+              patientsDAO.insertPatients(remotePatients)
+            }
+
+            pageNo = data.pageNo + 1
+            totalCount = data.totalCount
+          }
+        }
+      } catch (e: Exception) {
+        totalCount = 0
+      }
+    } while(pageNo * defaultPageSize < totalCount)
+  }
+
+  private fun findRemotePatientObservable(firstName: String, lastName: String, gender: String, phone: String, dob: String, pageNo: Int): Call<ResponseDTO> {
     val urlBuilder = StringBuilder()
       .append(BuildConfig.SERVER_URL)
       .append("/EMR-Middleware/webapi/pull/pulldata/search?firstname=")
       .append(firstName).append("&gender=").append(gender)
+      .append("&pageNo=").append(pageNo).append("&limit=").append(defaultPageSize)
 
     lastName.ifEmpty { null }?.let { urlBuilder.append("&lastname=").append(lastName) }
     phone.ifEmpty { null }?.let { urlBuilder.append("&telecom=").append(phone) }
@@ -215,7 +238,47 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
     return AppConstants.apiInterface.RESPONSE_DTO_CALL_FOR_FILTER(url, "Basic " + sessionManager.encoded)
   }
 
-  private fun updatePatientsAdapter(patients: List<PatientDTO>) {
+  private fun initRecyclerScrollListener(firstName: String, lastName: String, gender: String, phone: String, dob: String) {
+    val scrollListener = object: RecyclerView.OnScrollListener() {
+      override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+        super.onScrollStateChanged(recyclerView, newState)
+
+        if(isFullyLoaded) {
+          return
+        }
+
+        val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+
+        if(layoutManager.findLastVisibleItemPosition() == patientAdapter.itemCount - 1) {
+          Toast.makeText(
+            this@FilterPatientActivity,
+            R.string.loading_more,
+            Toast.LENGTH_SHORT
+          ).show()
+
+          offset += defaultPageSize
+          loadMorePatientsAndUpdateAdapter(firstName, lastName, gender, phone, dob)
+        }
+      }
+    }
+
+    filterRecyclerView.removeOnScrollListener(scrollListener)
+    filterRecyclerView.addOnScrollListener(scrollListener)
+  }
+
+  private fun loadMorePatientsAndUpdateAdapter(firstName: String, lastName: String, gender: String, phone: String, dob: String) {
+    isDataLoading = true
+    val patients = PatientsDAO.getFilteredPatients(firstName, lastName, gender, phone, dob, offset, defaultPageSize)
+
+    if(patients.size < defaultPageSize) {
+      isFullyLoaded = true
+    }
+
+    patientAdapter.addMorePatients(patients)
+    isDataLoading = false
+  }
+
+  private fun updatePatientsAdapter(patients: MutableList<PatientDTO>) {
     if(patients.isNotEmpty()) {
       selectedPatient = null
       goWithSelectedButton.isEnabled = false
@@ -223,7 +286,9 @@ class FilterPatientActivity: BaseActivity(), FilterPatientAdapter.AdapterClickLi
       patientAdapter.updatePatientList(patients)
       filterFailedLayout.visibility = View.GONE
       filterSuccessLayout.visibility = View.VISIBLE
+      filterSuccessActionLayout.visibility = View.VISIBLE
     } else {
+      filterSuccessActionLayout.visibility = View.GONE
       filterSuccessLayout.visibility = View.GONE
       filterFailedLayout.visibility = View.VISIBLE
     }

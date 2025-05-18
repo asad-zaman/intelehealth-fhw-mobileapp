@@ -852,7 +852,7 @@ public class SyncDAO {
 
     private void loadConfig() {
         ConfigSyncWorker.Companion.startConfigSyncWorker(IntelehealthApplication.getAppContext(), it -> {
-            Timber.d("Worker state sync " + it);
+            Logger.logD(TAG, "Worker state sync " + it);
             return Unit.INSTANCE;
         });
         isTheConfigUpdated = true;
